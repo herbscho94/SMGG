@@ -312,16 +312,16 @@ async function manualCanvasDrawing() {
         const imageAreaHeight = size - 150;
         const mainImageWidth = imageAreaHeight * 0.6;
         
-        // Draw main image
+        // Draw main image with proper aspect ratio
         try {
             const mainImg = await loadImage(uploadedImages[0].src);
-            ctx.drawImage(mainImg, 0, 0, mainImageWidth, imageAreaHeight);
+            drawImageWithAspectRatio(ctx, mainImg, 0, 0, mainImageWidth, imageAreaHeight);
             console.log('Main image drawn');
         } catch (error) {
             console.log('Could not draw main image:', error);
         }
         
-        // Draw secondary images
+        // Draw secondary images with proper aspect ratio
         const secondaryImages = uploadedImages.slice(1, 5);
         const secondaryImageSize = imageAreaHeight * 0.4;
         
@@ -331,7 +331,7 @@ async function manualCanvasDrawing() {
                     const x = mainImageWidth + (i % 2) * (secondaryImageSize / 2);
                     const y = Math.floor(i / 2) * (secondaryImageSize / 2);
                     const img = await loadImage(secondaryImages[i].src);
-                    ctx.drawImage(img, x, y, secondaryImageSize / 2, secondaryImageSize / 2);
+                    drawImageWithAspectRatio(ctx, img, x, y, secondaryImageSize / 2, secondaryImageSize / 2);
                     console.log(`Secondary image ${i + 1} drawn`);
                 } catch (error) {
                     console.log(`Could not draw secondary image ${i + 1}:`, error);
@@ -391,6 +391,35 @@ async function waitForImages() {
     
     await Promise.all(imagePromises);
     console.log('All images loaded');
+}
+
+// Draw image with proper aspect ratio (like CSS object-fit: cover)
+function drawImageWithAspectRatio(ctx, img, x, y, width, height) {
+    // Calculate the aspect ratios
+    const imageAspectRatio = img.width / img.height;
+    const targetAspectRatio = width / height;
+    
+    let sourceX = 0;
+    let sourceY = 0;
+    let sourceWidth = img.width;
+    let sourceHeight = img.height;
+    
+    if (imageAspectRatio > targetAspectRatio) {
+        // Image is wider than target - crop sides
+        sourceWidth = img.height * targetAspectRatio;
+        sourceX = (img.width - sourceWidth) / 2;
+    } else {
+        // Image is taller than target - crop top/bottom
+        sourceHeight = img.width / targetAspectRatio;
+        sourceY = (img.height - sourceHeight) / 2;
+    }
+    
+    // Draw the cropped image
+    ctx.drawImage(
+        img,
+        sourceX, sourceY, sourceWidth, sourceHeight,  // Source rectangle
+        x, y, width, height  // Destination rectangle
+    );
 }
 
 
