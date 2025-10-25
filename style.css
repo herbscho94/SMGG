@@ -564,6 +564,55 @@ body {
     }
 }
 
+/* Uploaded Images List */
+.uploaded-images-list {
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 10px;
+}
+
+.uploaded-image-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    background-color: var(--light-gray);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    font-size: 12px;
+}
+
+.uploaded-image-item img {
+    width: 40px;
+    height: 30px;
+    object-fit: cover;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.uploaded-image-item span {
+    flex: 1;
+    color: var(--dark-gray);
+}
+
+.remove-btn {
+    background-color: #e53e3e;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.remove-btn:hover {
+    background-color: #c53030;
+}
+
 /* Format-specific styles for export - Only 1:1 square format */
 .main-content {
     aspect-ratio: 1 / 1;
