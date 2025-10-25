@@ -168,7 +168,7 @@ function updateProfitabilityIndicator() {
 }
 
 
-// Simple PNG Download Function
+// Enhanced PNG Download Function
 async function downloadPNG() {
     try {
         generateBtn.textContent = 'Generiere PNG...';
@@ -178,8 +178,19 @@ async function downloadPNG() {
         const controlPanel = document.querySelector('.control-panel');
         controlPanel.style.display = 'none';
         
-        // Wait for layout to settle
-        await new Promise(resolve => setTimeout(resolve, 200));
+        // Wait for layout to settle and ensure all images are loaded
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Ensure all images are loaded
+        await waitForImages();
+        
+        // Force layout recalculation to ensure all styles are applied
+        mainContent.style.display = 'none';
+        mainContent.offsetHeight; // Trigger reflow
+        mainContent.style.display = 'flex';
+        
+        // Wait a bit more for styles to settle
+        await new Promise(resolve => setTimeout(resolve, 100));
         
         // Get exact dimensions
         const rect = mainContent.getBoundingClientRect();
@@ -188,7 +199,7 @@ async function downloadPNG() {
         
         console.log('Creating PNG with dimensions:', width, 'x', height);
         
-        // Create canvas with html2canvas
+        // Create canvas with enhanced html2canvas settings for better design capture
         const canvas = await html2canvas(mainContent, {
             backgroundColor: '#ffffff',
             scale: 2, // High resolution
@@ -202,7 +213,45 @@ async function downloadPNG() {
             windowHeight: height,
             x: 0,
             y: 0,
-            logging: false
+            logging: false,
+            removeContainer: false,
+            imageTimeout: 15000,
+            foreignObjectRendering: true,
+            onclone: function(clonedDoc) {
+                // Ensure cloned document has all styles properly applied
+                const clonedMainContent = clonedDoc.querySelector('.main-content');
+                if (clonedMainContent) {
+                    // Force critical styles to be applied
+                    clonedMainContent.style.position = 'relative';
+                    clonedMainContent.style.overflow = 'visible';
+                    clonedMainContent.style.display = 'flex';
+                    clonedMainContent.style.flexDirection = 'column';
+                    clonedMainContent.style.backgroundColor = '#ffffff';
+                    clonedMainContent.style.borderRadius = '12px';
+                    clonedMainContent.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.1)';
+                }
+                
+                // Ensure footer styles are applied
+                const clonedFooter = clonedDoc.querySelector('.footer');
+                if (clonedFooter) {
+                    clonedFooter.style.backgroundColor = '#0D47A1';
+                    clonedFooter.style.color = '#ffffff';
+                    clonedFooter.style.padding = '30px';
+                }
+                
+                // Ensure logo overlay is visible
+                const clonedLogo = clonedDoc.querySelector('.logo-overlay');
+                if (clonedLogo) {
+                    clonedLogo.style.position = 'absolute';
+                    clonedLogo.style.top = '20px';
+                    clonedLogo.style.left = '20px';
+                    clonedLogo.style.zIndex = '10';
+                    clonedLogo.style.backgroundColor = '#ffffff';
+                    clonedLogo.style.padding = '8px 12px';
+                    clonedLogo.style.borderRadius = '8px';
+                    clonedLogo.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+                }
+            }
         });
         
         console.log('Canvas created with dimensions:', canvas.width, 'x', canvas.height);
@@ -229,11 +278,29 @@ async function downloadPNG() {
         
     } catch (error) {
         console.error('Error creating PNG:', error);
-        alert('Fehler beim Erstellen der PNG-Datei. Bitte versuchen Sie es erneut oder laden Sie die Seite auf GitHub Pages hoch.');
+        alert('Fehler beim Erstellen der PNG-Datei. Bitte versuchen Sie es erneut.');
     } finally {
         generateBtn.textContent = 'Grafik als PNG herunterladen';
         generateBtn.disabled = false;
     }
+}
+
+// Wait for all images to load
+async function waitForImages() {
+    const images = mainContent.querySelectorAll('img');
+    const imagePromises = Array.from(images).map(img => {
+        return new Promise((resolve) => {
+            if (img.complete) {
+                resolve();
+            } else {
+                img.onload = resolve;
+                img.onerror = resolve;
+            }
+        });
+    });
+    
+    await Promise.all(imagePromises);
+    console.log('All images loaded');
 }
 
 
