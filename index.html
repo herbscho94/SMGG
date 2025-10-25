@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inside Thai Property - Social Media Grafik Generator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Logo Overlay -->
+            <div class="logo-overlay">
+                <img src="logo.png" alt="Inside Thai Property Logo" class="company-logo">
+            </div>
+            <!-- Image Mosaic Area -->
+            <div class="image-mosaic" id="imageMosaic">
+                <div class="main-image-container">
+                    <div class="image-placeholder" id="mainImagePlaceholder">
+                        <span>Main Image</span>
+                    </div>
+                </div>
+                <div class="secondary-images">
+                    <div class="image-placeholder" id="secondaryImage1">
+                        <span>Image 2</span>
+                    </div>
+                    <div class="image-placeholder" id="secondaryImage2">
+                        <span>Image 3</span>
+                    </div>
+                    <div class="image-placeholder" id="secondaryImage3">
+                        <span>Image 4</span>
+                    </div>
+                    <div class="image-placeholder" id="secondaryImage4">
+                        <span>Image 5</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer with Text Content -->
+            <footer class="footer">
+                <div class="footer-content">
+                    <div class="text-content">
+                        <h2 class="project-name" id="projectName">NUE EPIC ASOK - RAMA 9</h2>
+                        <div class="price-info">
+                            <p class="start-price" id="startPrice">135,000 BAHT / SQM</p>
+                            <p class="example-price" id="examplePrice">26 SQM UNIT FROM 3.5 M BAHT</p>
+                        </div>
+                    </div>
+                    <div class="profitability-indicator">
+                        <div class="indicator-bar">
+                            <div class="indicator-gradient"></div>
+                            <div class="indicator-dot" id="indicatorDot"></div>
+                        </div>
+                        <div class="indicator-labels">
+                            <span class="label-low">Less Profitable</span>
+                            <span class="label-medium">Normal</span>
+                            <span class="label-high">Very Profitable</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- Green Accent Stripes -->
+                <div class="accent-stripes">
+                    <div class="stripe stripe-1"></div>
+                    <div class="stripe stripe-2"></div>
+                    <div class="stripe stripe-3"></div>
+                </div>
+            </footer>
+        </main>
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <h3>Grafik-Einstellungen</h3>
+            
+            <!-- Image Upload Section -->
+            <div class="upload-section">
+                <h4>Bilder hochladen</h4>
+                <input type="file" id="imageUpload" multiple accept="image/*">
+                <div class="uploaded-images" id="uploadedImages"></div>
+            </div>
+
+            <!-- Text Input Section -->
+            <div class="text-input-section">
+                <h4>Text-Eingaben</h4>
+                <div class="input-group">
+                    <label for="projectNameInput">Projektname:</label>
+                    <input type="text" id="projectNameInput" value="NUE EPIC ASOK - RAMA 9">
+                </div>
+                <div class="input-group">
+                    <label for="startPriceInput">Startpreis:</label>
+                    <input type="text" id="startPriceInput" value="135,000 BAHT / SQM">
+                </div>
+                <div class="input-group">
+                    <label for="examplePriceInput">Beispielpreis:</label>
+                    <input type="text" id="examplePriceInput" value="26 SQM UNIT FROM 3.5 M BAHT">
+                </div>
+            </div>
+
+            <!-- Profitability Indicator Section -->
+            <div class="indicator-section">
+                <h4>Lukrativitäts-Indikator</h4>
+                <div class="slider-container">
+                    <input type="range" id="profitabilitySlider" min="0" max="100" value="50">
+                    <div class="slider-value" id="sliderValue">50%</div>
+                </div>
+            </div>
+
+            <!-- Export Section -->
+            <div class="export-section">
+                <h4>Export</h4>
+                <button id="generateImage" class="generate-btn">Grafik als PNG herunterladen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include html2canvas library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
