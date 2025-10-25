@@ -168,7 +168,7 @@ function updateProfitabilityIndicator() {
 }
 
 
-// Enhanced PNG Download Function
+// Manual Canvas Drawing for Perfect Design Capture
 async function downloadPNG() {
     try {
         generateBtn.textContent = 'Generiere PNG...';
@@ -178,83 +178,36 @@ async function downloadPNG() {
         const controlPanel = document.querySelector('.control-panel');
         controlPanel.style.display = 'none';
         
-        // Wait for layout to settle and ensure all images are loaded
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Wait for layout to settle
+        await new Promise(resolve => setTimeout(resolve, 200));
         
         // Ensure all images are loaded
         await waitForImages();
         
-        // Force layout recalculation to ensure all styles are applied
-        mainContent.style.display = 'none';
-        mainContent.offsetHeight; // Trigger reflow
-        mainContent.style.display = 'flex';
+        // Get dimensions (square format)
+        const size = 800; // Fixed square size for consistent output
         
-        // Wait a bit more for styles to settle
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Create canvas
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = size * 2; // High resolution
+        canvas.height = size * 2;
+        ctx.scale(2, 2);
         
-        // Get exact dimensions
-        const rect = mainContent.getBoundingClientRect();
-        const width = rect.width;
-        const height = rect.height;
+        console.log('Creating manual canvas with size:', size, 'x', size);
         
-        console.log('Creating PNG with dimensions:', width, 'x', height);
+        // Fill white background
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, size, size);
         
-        // Create canvas with enhanced html2canvas settings for better design capture
-        const canvas = await html2canvas(mainContent, {
-            backgroundColor: '#ffffff',
-            scale: 2, // High resolution
-            useCORS: true,
-            allowTaint: true,
-            width: width,
-            height: height,
-            scrollX: 0,
-            scrollY: 0,
-            windowWidth: width,
-            windowHeight: height,
-            x: 0,
-            y: 0,
-            logging: false,
-            removeContainer: false,
-            imageTimeout: 15000,
-            foreignObjectRendering: true,
-            onclone: function(clonedDoc) {
-                // Ensure cloned document has all styles properly applied
-                const clonedMainContent = clonedDoc.querySelector('.main-content');
-                if (clonedMainContent) {
-                    // Force critical styles to be applied
-                    clonedMainContent.style.position = 'relative';
-                    clonedMainContent.style.overflow = 'visible';
-                    clonedMainContent.style.display = 'flex';
-                    clonedMainContent.style.flexDirection = 'column';
-                    clonedMainContent.style.backgroundColor = '#ffffff';
-                    clonedMainContent.style.borderRadius = '12px';
-                    clonedMainContent.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.1)';
-                }
-                
-                // Ensure footer styles are applied
-                const clonedFooter = clonedDoc.querySelector('.footer');
-                if (clonedFooter) {
-                    clonedFooter.style.backgroundColor = '#0D47A1';
-                    clonedFooter.style.color = '#ffffff';
-                    clonedFooter.style.padding = '30px';
-                }
-                
-                // Ensure logo overlay is visible
-                const clonedLogo = clonedDoc.querySelector('.logo-overlay');
-                if (clonedLogo) {
-                    clonedLogo.style.position = 'absolute';
-                    clonedLogo.style.top = '20px';
-                    clonedLogo.style.left = '20px';
-                    clonedLogo.style.zIndex = '10';
-                    clonedLogo.style.backgroundColor = '#ffffff';
-                    clonedLogo.style.padding = '8px 12px';
-                    clonedLogo.style.borderRadius = '8px';
-                    clonedLogo.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
-                }
-            }
-        });
+        // Draw images in mosaic layout
+        await drawImageMosaic(ctx, size);
         
-        console.log('Canvas created with dimensions:', canvas.width, 'x', canvas.height);
+        // Draw logo overlay
+        await drawLogoOverlay(ctx);
+        
+        // Draw footer with text and indicator
+        drawFooter(ctx, size);
         
         // Convert to PNG and download
         canvas.toBlob(function(blob) {
@@ -301,6 +254,148 @@ async function waitForImages() {
     
     await Promise.all(imagePromises);
     console.log('All images loaded');
+}
+
+// Draw image mosaic layout
+async function drawImageMosaic(ctx, size) {
+    const imageAreaHeight = size - 150; // Leave space for footer
+    const mainImageWidth = imageAreaHeight * 0.6; // 60% of height
+    const secondaryImageSize = imageAreaHeight * 0.4; // 40% of height
+    
+    // Draw main image (left side)
+    if (uploadedImages.length > 0) {
+        const mainImg = await loadImage(uploadedImages[0].src);
+        ctx.drawImage(mainImg, 0, 0, mainImageWidth, imageAreaHeight);
+    } else {
+        // Draw placeholder
+        ctx.fillStyle = '#e2e8f0';
+        ctx.fillRect(0, 0, mainImageWidth, imageAreaHeight);
+        ctx.fillStyle = '#718096';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Main Image', mainImageWidth / 2, imageAreaHeight / 2);
+    }
+    
+    // Draw secondary images (right side, 2x2 grid)
+    const secondaryImages = uploadedImages.slice(1, 5);
+    for (let i = 0; i < 4; i++) {
+        const x = mainImageWidth + (i % 2) * (secondaryImageSize / 2);
+        const y = Math.floor(i / 2) * (secondaryImageSize / 2);
+        
+        if (secondaryImages[i]) {
+            const img = await loadImage(secondaryImages[i].src);
+            ctx.drawImage(img, x, y, secondaryImageSize / 2, secondaryImageSize / 2);
+        } else {
+            // Draw placeholder
+            ctx.fillStyle = '#e2e8f0';
+            ctx.fillRect(x, y, secondaryImageSize / 2, secondaryImageSize / 2);
+            ctx.fillStyle = '#718096';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(`Image ${i + 2}`, x + (secondaryImageSize / 4), y + (secondaryImageSize / 4));
+        }
+    }
+}
+
+// Load image from data URL
+function loadImage(src) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+    });
+}
+
+// Draw logo overlay
+async function drawLogoOverlay(ctx) {
+    try {
+        const logoImg = await loadImage('logo.png');
+        const logoSize = 40;
+        const padding = 8;
+        
+        // Draw white background
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(20, 20, logoSize + padding * 2, logoSize + padding * 2);
+        
+        // Draw shadow
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+        ctx.shadowBlur = 4;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 4;
+        
+        // Draw logo
+        ctx.drawImage(logoImg, 20 + padding, 20 + padding, logoSize, logoSize);
+        
+        // Reset shadow
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+    } catch (error) {
+        console.log('Logo not found, skipping...');
+    }
+}
+
+// Draw footer with text and indicator
+function drawFooter(ctx, size) {
+    const footerY = size - 150;
+    const footerHeight = 150;
+    
+    // Draw footer background
+    ctx.fillStyle = '#0D47A1'; // Primary blue
+    ctx.fillRect(0, footerY, size, footerHeight);
+    
+    // Draw green accent stripes
+    ctx.fillStyle = '#2C6B3F'; // Secondary green
+    ctx.fillRect(size - 80, footerY, 20, footerHeight);
+    ctx.fillRect(size - 55, footerY + 15, 15, footerHeight - 30);
+    ctx.fillRect(size - 35, footerY + 30, 10, footerHeight - 60);
+    
+    // Draw project name
+    ctx.fillStyle = '#FFC107'; // Accent gold
+    ctx.font = 'bold 24px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText(projectNameInput.value || 'NUE EPIC ASOK - RAMA 9', 30, footerY + 40);
+    
+    // Draw prices
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '16px Arial';
+    ctx.fillText(startPriceInput.value || '135,000 BAHT / SQM', 30, footerY + 70);
+    
+    ctx.font = '14px Arial';
+    ctx.fillText(examplePriceInput.value || '26 SQM UNIT FROM 3.5 M BAHT', 30, footerY + 95);
+    
+    // Draw profitability indicator
+    const indicatorY = footerY + 110;
+    const indicatorWidth = size - 200;
+    
+    // Draw indicator background gradient
+    const gradient = ctx.createLinearGradient(30, indicatorY, 30 + indicatorWidth, indicatorY);
+    gradient.addColorStop(0, '#e53e3e');
+    gradient.addColorStop(0.5, '#f6ad55');
+    gradient.addColorStop(1, '#38a169');
+    
+    ctx.fillStyle = gradient;
+    ctx.fillRect(30, indicatorY, indicatorWidth, 20);
+    
+    // Draw indicator dot
+    const sliderValue = parseInt(profitabilitySlider.value);
+    const dotX = 30 + (indicatorWidth * sliderValue / 100);
+    ctx.fillStyle = '#FFC107';
+    ctx.beginPath();
+    ctx.arc(dotX, indicatorY + 10, 8, 0, 2 * Math.PI);
+    ctx.fill();
+    
+    // Draw indicator labels
+    ctx.fillStyle = '#cbd5e0';
+    ctx.font = '10px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText('Less Profitable', 30, indicatorY + 35);
+    ctx.textAlign = 'center';
+    ctx.fillText('Normal', 30 + indicatorWidth / 2, indicatorY + 35);
+    ctx.textAlign = 'right';
+    ctx.fillText('Very Profitable', 30 + indicatorWidth, indicatorY + 35);
 }
 
 
