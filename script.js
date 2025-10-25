@@ -17,9 +17,9 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('secondaryImage3'),
         document.getElementById('secondaryImage4')
     ];
-    projectNameInput = document.getElementById('projectName');
-    startPriceInput = document.getElementById('startPrice');
-    examplePriceInput = document.getElementById('examplePrice');
+    projectNameInput = document.getElementById('projectNameInput');
+    startPriceInput = document.getElementById('startPriceInput');
+    examplePriceInput = document.getElementById('examplePriceInput');
     profitabilitySlider = document.getElementById('profitabilitySlider');
     generateBtn = document.getElementById('generateImage');
     mainContent = document.querySelector('.main-content');
@@ -153,6 +153,24 @@ function updateImageMosaic() {
 
 function updatePreview() {
     console.log('Preview updated');
+    
+    // Update project name
+    const projectNameElement = document.getElementById('projectName');
+    if (projectNameElement && projectNameInput) {
+        projectNameElement.textContent = projectNameInput.value;
+    }
+    
+    // Update start price
+    const startPriceElement = document.getElementById('startPrice');
+    if (startPriceElement && startPriceInput) {
+        startPriceElement.textContent = startPriceInput.value;
+    }
+    
+    // Update example price
+    const examplePriceElement = document.getElementById('examplePrice');
+    if (examplePriceElement && examplePriceInput) {
+        examplePriceElement.textContent = examplePriceInput.value;
+    }
 }
 
 function updateProfitabilityIndicator() {
@@ -406,14 +424,14 @@ function drawFooter(ctx, size) {
     ctx.fillStyle = '#FFC107';
     ctx.font = 'bold 24px Arial';
     ctx.textAlign = 'left';
-    ctx.fillText(projectNameInput.value || 'NUE EPIC ASOK - RAMA 9', 30, footerY + 40);
+    ctx.fillText(projectNameInput ? projectNameInput.value : 'NUE EPIC ASOK - RAMA 9', 30, footerY + 40);
     
     ctx.fillStyle = '#ffffff';
     ctx.font = '16px Arial';
-    ctx.fillText(startPriceInput.value || '135,000 BAHT / SQM', 30, footerY + 70);
+    ctx.fillText(startPriceInput ? startPriceInput.value : '135,000 BAHT / SQM', 30, footerY + 70);
     
     ctx.font = '14px Arial';
-    ctx.fillText(examplePriceInput.value || '26 SQM UNIT FROM 3.5 M BAHT', 30, footerY + 95);
+    ctx.fillText(examplePriceInput ? examplePriceInput.value : '26 SQM UNIT FROM 3.5 M BAHT', 30, footerY + 95);
     
     // Draw profitability indicator
     const indicatorY = footerY + 110;
