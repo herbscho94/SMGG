@@ -306,22 +306,37 @@ async function manualCanvasDrawing() {
     ctx.textAlign = 'right';
     ctx.fillText('Very Profitable', 30 + indicatorWidth, indicatorY + 35);
     
-    // Draw images if available
+    // Draw images if available - NEW SIMPLE APPROACH
     if (uploadedImages.length > 0) {
-        console.log('Drawing images...');
+        console.log('Drawing images with simple approach...');
         const imageAreaHeight = size - 150;
         const mainImageWidth = imageAreaHeight * 0.6;
         
-        // Draw main image with proper aspect ratio
+        // Draw main image - simple approach
         try {
             const mainImg = await loadImage(uploadedImages[0].src);
-            drawImageWithAspectRatio(ctx, mainImg, 0, 0, mainImageWidth, imageAreaHeight);
-            console.log('Main image drawn');
+            console.log(`Main image loaded: ${mainImg.width}x${mainImg.height}`);
+            
+            // Calculate scaling to fill the area while maintaining aspect ratio
+            const scaleX = mainImageWidth / mainImg.width;
+            const scaleY = imageAreaHeight / mainImg.height;
+            const scale = Math.max(scaleX, scaleY); // Use larger scale to fill area
+            
+            const scaledWidth = mainImg.width * scale;
+            const scaledHeight = mainImg.height * scale;
+            
+            // Center the image
+            const offsetX = (mainImageWidth - scaledWidth) / 2;
+            const offsetY = (imageAreaHeight - scaledHeight) / 2;
+            
+            console.log(`Scaling main image by ${scale}, drawing at (${offsetX}, ${offsetY})`);
+            ctx.drawImage(mainImg, offsetX, offsetY, scaledWidth, scaledHeight);
+            console.log('Main image drawn successfully');
         } catch (error) {
             console.log('Could not draw main image:', error);
         }
         
-        // Draw secondary images with proper aspect ratio
+        // Draw secondary images - simple approach
         const secondaryImages = uploadedImages.slice(1, 5);
         const secondaryImageSize = imageAreaHeight * 0.4;
         
@@ -331,8 +346,25 @@ async function manualCanvasDrawing() {
                     const x = mainImageWidth + (i % 2) * (secondaryImageSize / 2);
                     const y = Math.floor(i / 2) * (secondaryImageSize / 2);
                     const img = await loadImage(secondaryImages[i].src);
-                    drawImageWithAspectRatio(ctx, img, x, y, secondaryImageSize / 2, secondaryImageSize / 2);
-                    console.log(`Secondary image ${i + 1} drawn`);
+                    
+                    console.log(`Secondary image ${i + 1} loaded: ${img.width}x${img.height}`);
+                    
+                    // Calculate scaling for secondary images
+                    const targetSize = secondaryImageSize / 2;
+                    const scaleX = targetSize / img.width;
+                    const scaleY = targetSize / img.height;
+                    const scale = Math.max(scaleX, scaleY);
+                    
+                    const scaledWidth = img.width * scale;
+                    const scaledHeight = img.height * scale;
+                    
+                    // Center the image
+                    const offsetX = x + (targetSize - scaledWidth) / 2;
+                    const offsetY = y + (targetSize - scaledHeight) / 2;
+                    
+                    console.log(`Scaling secondary image ${i + 1} by ${scale}`);
+                    ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+                    console.log(`Secondary image ${i + 1} drawn successfully`);
                 } catch (error) {
                     console.log(`Could not draw secondary image ${i + 1}:`, error);
                 }
@@ -395,9 +427,13 @@ async function waitForImages() {
 
 // Draw image with proper aspect ratio (like CSS object-fit: cover)
 function drawImageWithAspectRatio(ctx, img, x, y, width, height) {
+    console.log(`Drawing image: ${img.width}x${img.height} into ${width}x${height} at (${x}, ${y})`);
+    
     // Calculate the aspect ratios
     const imageAspectRatio = img.width / img.height;
     const targetAspectRatio = width / height;
+    
+    console.log(`Image aspect ratio: ${imageAspectRatio}, Target aspect ratio: ${targetAspectRatio}`);
     
     let sourceX = 0;
     let sourceY = 0;
@@ -405,13 +441,15 @@ function drawImageWithAspectRatio(ctx, img, x, y, width, height) {
     let sourceHeight = img.height;
     
     if (imageAspectRatio > targetAspectRatio) {
-        // Image is wider than target - crop sides
+        // Image is wider than target - crop sides (image is too wide)
         sourceWidth = img.height * targetAspectRatio;
         sourceX = (img.width - sourceWidth) / 2;
+        console.log(`Cropping sides: sourceX=${sourceX}, sourceWidth=${sourceWidth}`);
     } else {
-        // Image is taller than target - crop top/bottom
+        // Image is taller than target - crop top/bottom (image is too tall)
         sourceHeight = img.width / targetAspectRatio;
         sourceY = (img.height - sourceHeight) / 2;
+        console.log(`Cropping top/bottom: sourceY=${sourceY}, sourceHeight=${sourceHeight}`);
     }
     
     // Draw the cropped image
@@ -420,6 +458,8 @@ function drawImageWithAspectRatio(ctx, img, x, y, width, height) {
         sourceX, sourceY, sourceWidth, sourceHeight,  // Source rectangle
         x, y, width, height  // Destination rectangle
     );
+    
+    console.log(`Image drawn successfully`);
 }
 
 
