@@ -79,20 +79,16 @@ body {
     position: relative;
 }
 
-/* Image Mosaic Styles */
+/* Dynamic Image Mosaic Styles */
 .image-mosaic {
     flex: 1;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    flex-wrap: wrap;
     gap: 0;
     padding: 0;
     background-color: transparent;
     height: 100%;
-}
-
-.main-image-container {
-    position: relative;
-    height: 100%;
+    align-content: flex-start;
 }
 
 .image-placeholder {
@@ -109,8 +105,7 @@ body {
     cursor: pointer;
     position: relative;
     overflow: hidden;
-    width: 100%;
-    height: 100%;
+    flex-shrink: 0;
 }
 
 .image-placeholder:hover {
@@ -125,17 +120,13 @@ body {
     border-radius: 0;
 }
 
-
-.secondary-images {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr 1fr;
-    gap: 0;
-    height: 100%;
+/* Dynamic sizing classes */
+.image-placeholder.main-image {
+    /* Main image will be sized dynamically by JavaScript */
 }
 
-.secondary-images .image-placeholder {
-    height: 100%;
+.image-placeholder.secondary-image {
+    /* Secondary images will be sized dynamically by JavaScript */
 }
 
 /* Footer Styles */

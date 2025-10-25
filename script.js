@@ -1,174 +1,141 @@
+// Dynamic Mosaic Generator - Complete Rewrite
+// This creates a mosaic that adapts to the aspect ratios of uploaded images
+
 // Global variables
 let uploadedImages = [];
+let mosaicGenerator;
 
 // DOM elements
-const imageUpload = document.getElementById('imageUpload');
-const uploadedImagesContainer = document.getElementById('uploadedImages');
-const mainImagePlaceholder = document.getElementById('mainImagePlaceholder');
-const secondaryImagePlaceholders = [
-    document.getElementById('secondaryImage1'),
-    document.getElementById('secondaryImage2'),
-    document.getElementById('secondaryImage3'),
-    document.getElementById('secondaryImage4')
-];
-
-const projectNameInput = document.getElementById('projectNameInput');
-const startPriceInput = document.getElementById('startPriceInput');
-const examplePriceInput = document.getElementById('examplePriceInput');
-const projectNameDisplay = document.getElementById('projectName');
-const startPriceDisplay = document.getElementById('startPrice');
-const examplePriceDisplay = document.getElementById('examplePrice');
-
-const profitabilitySlider = document.getElementById('profitabilitySlider');
-const sliderValue = document.getElementById('sliderValue');
-const indicatorDot = document.getElementById('indicatorDot');
-
-const generateBtn = document.getElementById('generateImage');
-const mainContent = document.querySelector('.main-content');
+let projectNameInput, startPriceInput, examplePriceInput, profitabilitySlider, generateBtn, mainContent;
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Initializing Dynamic Mosaic Generator...');
+    
+    // Initialize mosaic generator
+    mosaicGenerator = new DynamicMosaicGenerator();
+    mosaicGenerator.init();
+    
+    // Get DOM elements
+    projectNameInput = document.getElementById('projectName');
+    startPriceInput = document.getElementById('startPrice');
+    examplePriceInput = document.getElementById('examplePrice');
+    profitabilitySlider = document.getElementById('profitabilitySlider');
+    generateBtn = document.getElementById('generateImage');
+    mainContent = document.querySelector('.main-content');
+    
+    // Initialize event listeners
     initializeEventListeners();
-    updateTextContent();
-    updateProfitabilityIndicator();
+    
+    console.log('Application initialized successfully');
 });
 
-// Event Listeners
 function initializeEventListeners() {
     // Image upload
-    imageUpload.addEventListener('change', handleImageUpload);
+    const fileInput = document.getElementById('imageUpload');
+    if (fileInput) {
+        fileInput.addEventListener('change', handleImageUpload);
+    }
     
     // Text inputs
-    projectNameInput.addEventListener('input', updateTextContent);
-    startPriceInput.addEventListener('input', updateTextContent);
-    examplePriceInput.addEventListener('input', updateTextContent);
+    if (projectNameInput) {
+        projectNameInput.addEventListener('input', updatePreview);
+    }
+    if (startPriceInput) {
+        startPriceInput.addEventListener('input', updatePreview);
+    }
+    if (examplePriceInput) {
+        examplePriceInput.addEventListener('input', updatePreview);
+    }
     
     // Profitability slider
-    profitabilitySlider.addEventListener('input', updateProfitabilityIndicator);
-    
+    if (profitabilitySlider) {
+        profitabilitySlider.addEventListener('input', updateProfitabilityIndicator);
+    }
     
     // Generate button
-    generateBtn.addEventListener('click', downloadPNG);
+    if (generateBtn) {
+        generateBtn.addEventListener('click', downloadPNG);
+    }
 }
 
-// Image Upload Handling
-function handleImageUpload(event) {
+// Handle image upload with dynamic mosaic
+async function handleImageUpload(event) {
     const files = Array.from(event.target.files);
+    console.log('Uploading', files.length, 'images...');
     
-    files.forEach(file => {
+    for (const file of files) {
         if (file.type.startsWith('image/')) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                // Create a new image to ensure it's not tainted
-                const img = new Image();
-                img.crossOrigin = 'anonymous';
-                img.onload = function() {
-                    // Create canvas to convert to clean data URL
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    ctx.drawImage(img, 0, 0);
-                    
-                    const cleanDataURL = canvas.toDataURL('image/png');
-                    
-                    const imageData = {
-                        id: Date.now() + Math.random(),
-                        src: cleanDataURL,
-                        file: file
-                    };
-                    uploadedImages.push(imageData);
-                    displayUploadedImages();
-                    updateImageMosaic();
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
+            const imageData = await processImageFile(file);
+            if (imageData) {
+                await mosaicGenerator.addImage(imageData);
+                uploadedImages.push(imageData);
+            }
         }
-    });
+    }
     
     // Clear the input
     event.target.value = '';
+    console.log('Total images:', uploadedImages.length);
 }
 
-function displayUploadedImages() {
-    uploadedImagesContainer.innerHTML = '';
-    
-    uploadedImages.forEach(imageData => {
-        const imageDiv = document.createElement('div');
-        imageDiv.className = 'uploaded-image';
-        imageDiv.innerHTML = `
-            <img src="${imageData.src}" alt="Uploaded image">
-            <button class="remove-btn" onclick="removeImage('${imageData.id}')">×</button>
-        `;
-        uploadedImagesContainer.appendChild(imageDiv);
+// Process image file to data URL
+function processImageFile(file) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = function() {
+                // Create canvas to convert to clean data URL
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+                
+                const cleanDataURL = canvas.toDataURL('image/png');
+                
+                resolve({
+                    id: Date.now() + Math.random(),
+                    src: cleanDataURL,
+                    file: file,
+                    name: file.name
+                });
+            };
+            img.onerror = () => resolve(null);
+            img.src = e.target.result;
+        };
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(file);
     });
 }
 
-function removeImage(imageId) {
-    uploadedImages = uploadedImages.filter(img => img.id !== imageId);
-    displayUploadedImages();
-    updateImageMosaic();
+// Update preview (placeholder for future enhancements)
+function updatePreview() {
+    console.log('Preview updated');
 }
 
-function updateImageMosaic() {
-    // Clear existing images
-    mainImagePlaceholder.innerHTML = '<span>Hauptbild hier</span>';
-    secondaryImagePlaceholders.forEach(placeholder => {
-        placeholder.innerHTML = '<span>Bild hier</span>';
-    });
-    
-    if (uploadedImages.length === 0) return;
-    
-    // Set main image (first uploaded image)
-    if (uploadedImages.length > 0) {
-        mainImagePlaceholder.innerHTML = `<img src="${uploadedImages[0].src}" alt="Main image">`;
-    }
-    
-    // Set secondary images
-    for (let i = 1; i < uploadedImages.length && i <= 4; i++) {
-        const placeholder = secondaryImagePlaceholders[i - 1];
-        placeholder.innerHTML = `<img src="${uploadedImages[i].src}" alt="Secondary image ${i}">`;
-    }
-}
-
-// Text Content Updates
-function updateTextContent() {
-    projectNameDisplay.textContent = projectNameInput.value || 'Projektname hier';
-    startPriceDisplay.textContent = startPriceInput.value || 'Startpreis hier';
-    examplePriceDisplay.textContent = examplePriceInput.value || 'Beispielpreis hier';
-}
-
-// Profitability Indicator
+// Update profitability indicator
 function updateProfitabilityIndicator() {
     const value = profitabilitySlider.value;
-    sliderValue.textContent = value + '%';
+    const dot = document.getElementById('indicatorDot');
     
-    // Update indicator dot position
-    const percentage = value / 100;
-    const barWidth = document.querySelector('.indicator-bar').offsetWidth;
-    const dotPosition = percentage * barWidth;
-    indicatorDot.style.left = dotPosition + 'px';
-    
-    // Update color based on value
-    let colorClass = '';
-    if (value <= 33) {
-        colorClass = 'low';
-    } else if (value <= 66) {
-        colorClass = 'medium';
-    } else {
-        colorClass = 'high';
+    if (dot) {
+        dot.style.left = value + '%';
+        
+        // Update color based on value
+        if (value <= 33) {
+            dot.style.backgroundColor = '#e53e3e';
+        } else if (value <= 66) {
+            dot.style.backgroundColor = '#f6ad55';
+        } else {
+            dot.style.backgroundColor = '#38a169';
+        }
     }
-    
-    // Update indicator labels
-    document.querySelectorAll('.indicator-labels span').forEach(label => {
-        label.classList.remove('active');
-    });
-    document.querySelector(`.label-${colorClass}`).classList.add('active');
 }
 
-
-// Simple and Reliable PNG Download
+// Download PNG with dynamic mosaic
 async function downloadPNG() {
     try {
         generateBtn.textContent = 'Generiere PNG...';
@@ -181,13 +148,9 @@ async function downloadPNG() {
         // Wait for layout to settle
         await new Promise(resolve => setTimeout(resolve, 300));
         
-        // Ensure all images are loaded
-        await waitForImages();
+        console.log('Starting PNG generation with dynamic mosaic...');
         
-        console.log('Starting PNG generation...');
-        console.log('Uploaded images count:', uploadedImages.length);
-        
-        // Try html2canvas with simple settings first
+        // Try html2canvas first
         try {
             const canvas = await html2canvas(mainContent, {
                 backgroundColor: '#ffffff',
@@ -218,9 +181,7 @@ async function downloadPNG() {
             }, 'image/png', 0.95);
             
         } catch (html2canvasError) {
-            console.log('html2canvas failed, trying manual method:', html2canvasError);
-            
-            // Fallback to manual drawing
+            console.log('html2canvas failed, using manual method:', html2canvasError);
             await manualCanvasDrawing();
         }
         
@@ -236,9 +197,9 @@ async function downloadPNG() {
     }
 }
 
-// Manual canvas drawing as fallback
+// Manual canvas drawing with dynamic mosaic
 async function manualCanvasDrawing() {
-    console.log('Using manual canvas drawing...');
+    console.log('Using manual canvas drawing with dynamic mosaic...');
     
     const size = 800;
     const canvas = document.createElement('canvas');
@@ -251,16 +212,193 @@ async function manualCanvasDrawing() {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, size, size);
     
-    // Draw footer background
-    const footerY = size - 150;
-    ctx.fillStyle = '#0D47A1';
-    ctx.fillRect(0, footerY, size, 150);
+    // Draw images using dynamic mosaic data
+    const mosaicData = mosaicGenerator.getMosaicData();
+    await drawDynamicMosaic(ctx, mosaicData, size);
     
-    // Draw green stripes
+    // Draw logo
+    await drawLogo(ctx);
+    
+    // Draw footer
+    drawFooter(ctx, size);
+    
+    // Convert to PNG and download
+    canvas.toBlob(function(blob) {
+        if (blob) {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = `inside-property-graphic-${Date.now()}.png`;
+            link.href = url;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            console.log('Dynamic mosaic PNG downloaded successfully');
+        } else {
+            throw new Error('Failed to create blob from dynamic mosaic');
+        }
+    }, 'image/png', 0.95);
+}
+
+// Draw dynamic mosaic on canvas
+async function drawDynamicMosaic(ctx, mosaicData, size) {
+    const { images, layout } = mosaicData;
+    const imageAreaHeight = size - 150;
+    
+    console.log('Drawing dynamic mosaic with layout:', layout);
+    
+    if (images.length === 0) return;
+    
+    // Draw images based on layout
+    switch (layout) {
+        case 'single':
+            await drawSingleImage(ctx, images[0], 0, 0, size * 0.8, imageAreaHeight * 0.8);
+            break;
+        case 'two':
+            await drawTwoImages(ctx, images, size, imageAreaHeight);
+            break;
+        case 'three':
+            await drawThreeImages(ctx, images, size, imageAreaHeight);
+            break;
+        case 'four':
+            await drawFourImages(ctx, images, size, imageAreaHeight);
+            break;
+        case 'five':
+            await drawFiveImages(ctx, images, size, imageAreaHeight);
+            break;
+    }
+}
+
+// Draw single image
+async function drawSingleImage(ctx, imageData, x, y, width, height) {
+    try {
+        const img = await loadImage(imageData.src);
+        const aspectRatio = img.width / img.height;
+        const containerAspectRatio = width / height;
+        
+        let sourceX = 0, sourceY = 0, sourceWidth = img.width, sourceHeight = img.height;
+        
+        if (aspectRatio > containerAspectRatio) {
+            sourceWidth = img.height * containerAspectRatio;
+            sourceX = (img.width - sourceWidth) / 2;
+        } else {
+            sourceHeight = img.width / containerAspectRatio;
+            sourceY = (img.height - sourceHeight) / 2;
+        }
+        
+        ctx.drawImage(img, sourceX, sourceY, sourceWidth, sourceHeight, x, y, width, height);
+        console.log('Single image drawn');
+    } catch (error) {
+        console.log('Could not draw single image:', error);
+    }
+}
+
+// Draw two images
+async function drawTwoImages(ctx, images, size, imageAreaHeight) {
+    const img1 = images[0];
+    const img2 = images[1];
+    
+    // Determine layout based on aspect ratios
+    const avgAspectRatio = (img1.aspectRatio + img2.aspectRatio) / 2;
+    
+    if (avgAspectRatio > 1.2) {
+        // Stack vertically
+        await drawSingleImage(ctx, img1, 0, 0, size, imageAreaHeight / 2);
+        await drawSingleImage(ctx, img2, 0, imageAreaHeight / 2, size, imageAreaHeight / 2);
+    } else {
+        // Side by side
+        await drawSingleImage(ctx, img1, 0, 0, size / 2, imageAreaHeight);
+        await drawSingleImage(ctx, img2, size / 2, 0, size / 2, imageAreaHeight);
+    }
+}
+
+// Draw three images
+async function drawThreeImages(ctx, images, size, imageAreaHeight) {
+    const mainImg = images[0];
+    const secondaryImages = images.slice(1);
+    
+    // Main image takes more space
+    await drawSingleImage(ctx, mainImg, 0, 0, size * 0.6, imageAreaHeight);
+    
+    // Secondary images
+    await drawSingleImage(ctx, secondaryImages[0], size * 0.6, 0, size * 0.4, imageAreaHeight / 2);
+    await drawSingleImage(ctx, secondaryImages[1], size * 0.6, imageAreaHeight / 2, size * 0.4, imageAreaHeight / 2);
+}
+
+// Draw four images
+async function drawFourImages(ctx, images, size, imageAreaHeight) {
+    const halfWidth = size / 2;
+    const halfHeight = imageAreaHeight / 2;
+    
+    for (let i = 0; i < 4; i++) {
+        const x = (i % 2) * halfWidth;
+        const y = Math.floor(i / 2) * halfHeight;
+        await drawSingleImage(ctx, images[i], x, y, halfWidth, halfHeight);
+    }
+}
+
+// Draw five images
+async function drawFiveImages(ctx, images, size, imageAreaHeight) {
+    const mainImg = images[0];
+    const secondaryImages = images.slice(1);
+    
+    // Main image
+    await drawSingleImage(ctx, mainImg, 0, 0, size * 0.6, imageAreaHeight);
+    
+    // Secondary images in 2x2 grid
+    const secondaryWidth = size * 0.4;
+    const secondaryHeight = imageAreaHeight / 2;
+    
+    for (let i = 0; i < 4; i++) {
+        const x = size * 0.6 + (i % 2) * (secondaryWidth / 2);
+        const y = Math.floor(i / 2) * secondaryHeight;
+        await drawSingleImage(ctx, secondaryImages[i], x, y, secondaryWidth / 2, secondaryHeight);
+    }
+}
+
+// Load image from data URL
+function loadImage(src) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+    });
+}
+
+// Draw logo
+async function drawLogo(ctx) {
+    try {
+        const logoImg = await loadImage('logo.png');
+        const logoSize = 40;
+        const padding = 8;
+        
+        // White background
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(20, 20, logoSize + padding * 2, logoSize + padding * 2);
+        
+        // Logo
+        ctx.drawImage(logoImg, 20 + padding, 20 + padding, logoSize, logoSize);
+        console.log('Logo drawn');
+    } catch (error) {
+        console.log('Could not draw logo:', error);
+    }
+}
+
+// Draw footer
+function drawFooter(ctx, size) {
+    const footerY = size - 150;
+    const footerHeight = 150;
+    
+    // Draw footer background
+    ctx.fillStyle = '#0D47A1';
+    ctx.fillRect(0, footerY, size, footerHeight);
+    
+    // Draw green accent stripes
     ctx.fillStyle = '#2C6B3F';
-    ctx.fillRect(size - 80, footerY, 20, 150);
-    ctx.fillRect(size - 55, footerY + 15, 15, 120);
-    ctx.fillRect(size - 35, footerY + 30, 10, 90);
+    ctx.fillRect(size - 80, footerY, 20, footerHeight);
+    ctx.fillRect(size - 55, footerY + 15, 15, footerHeight - 30);
+    ctx.fillRect(size - 35, footerY + 30, 10, footerHeight - 60);
     
     // Draw text content
     ctx.fillStyle = '#FFC107';
@@ -305,171 +443,4 @@ async function manualCanvasDrawing() {
     ctx.fillText('Normal', 30 + indicatorWidth / 2, indicatorY + 35);
     ctx.textAlign = 'right';
     ctx.fillText('Very Profitable', 30 + indicatorWidth, indicatorY + 35);
-    
-    // Draw images if available - EXACTLY LIKE CSS object-fit: cover
-    if (uploadedImages.length > 0) {
-        console.log('Drawing images with CSS object-fit: cover behavior...');
-        const imageAreaHeight = size - 150;
-        const mainImageWidth = imageAreaHeight * 0.6;
-        
-        // Draw main image - EXACT CSS object-fit: cover behavior
-        try {
-            const mainImg = await loadImage(uploadedImages[0].src);
-            console.log(`Main image loaded: ${mainImg.width}x${mainImg.height}`);
-            
-            // EXACT object-fit: cover implementation
-            const imageAspectRatio = mainImg.width / mainImg.height;
-            const containerAspectRatio = mainImageWidth / imageAreaHeight;
-            
-            let sourceX = 0, sourceY = 0, sourceWidth = mainImg.width, sourceHeight = mainImg.height;
-            
-            if (imageAspectRatio > containerAspectRatio) {
-                // Image is wider - crop sides
-                sourceWidth = mainImg.height * containerAspectRatio;
-                sourceX = (mainImg.width - sourceWidth) / 2;
-            } else {
-                // Image is taller - crop top/bottom
-                sourceHeight = mainImg.width / containerAspectRatio;
-                sourceY = (mainImg.height - sourceHeight) / 2;
-            }
-            
-            console.log(`Main image cropping: source(${sourceX}, ${sourceY}, ${sourceWidth}, ${sourceHeight})`);
-            ctx.drawImage(mainImg, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, mainImageWidth, imageAreaHeight);
-            console.log('Main image drawn successfully');
-        } catch (error) {
-            console.log('Could not draw main image:', error);
-        }
-        
-        // Draw secondary images - EXACT CSS object-fit: cover behavior
-        const secondaryImages = uploadedImages.slice(1, 5);
-        const secondaryImageSize = imageAreaHeight * 0.4;
-        
-        for (let i = 0; i < 4; i++) {
-            if (secondaryImages[i]) {
-                try {
-                    const x = mainImageWidth + (i % 2) * (secondaryImageSize / 2);
-                    const y = Math.floor(i / 2) * (secondaryImageSize / 2);
-                    const img = await loadImage(secondaryImages[i].src);
-                    
-                    console.log(`Secondary image ${i + 1} loaded: ${img.width}x${img.height}`);
-                    
-                    // EXACT object-fit: cover implementation for secondary images
-                    const targetSize = secondaryImageSize / 2;
-                    const imageAspectRatio = img.width / img.height;
-                    const containerAspectRatio = targetSize / targetSize; // Square container
-                    
-                    let sourceX = 0, sourceY = 0, sourceWidth = img.width, sourceHeight = img.height;
-                    
-                    if (imageAspectRatio > containerAspectRatio) {
-                        // Image is wider - crop sides
-                        sourceWidth = img.height * containerAspectRatio;
-                        sourceX = (img.width - sourceWidth) / 2;
-                    } else {
-                        // Image is taller - crop top/bottom
-                        sourceHeight = img.width / containerAspectRatio;
-                        sourceY = (img.height - sourceHeight) / 2;
-                    }
-                    
-                    console.log(`Secondary image ${i + 1} cropping: source(${sourceX}, ${sourceY}, ${sourceWidth}, ${sourceHeight})`);
-                    ctx.drawImage(img, sourceX, sourceY, sourceWidth, sourceHeight, x, y, targetSize, targetSize);
-                    console.log(`Secondary image ${i + 1} drawn successfully`);
-                } catch (error) {
-                    console.log(`Could not draw secondary image ${i + 1}:`, error);
-                }
-            }
-        }
-    }
-    
-    // Draw logo
-    try {
-        const logoImg = await loadImage('logo.png');
-        const logoSize = 40;
-        const padding = 8;
-        
-        // White background
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(20, 20, logoSize + padding * 2, logoSize + padding * 2);
-        
-        // Logo
-        ctx.drawImage(logoImg, 20 + padding, 20 + padding, logoSize, logoSize);
-        console.log('Logo drawn');
-    } catch (error) {
-        console.log('Could not draw logo:', error);
-    }
-    
-    // Convert to PNG and download
-    canvas.toBlob(function(blob) {
-        if (blob) {
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.download = `inside-property-graphic-${Date.now()}.png`;
-            link.href = url;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-            console.log('Manual PNG downloaded successfully');
-        } else {
-            throw new Error('Failed to create blob from manual canvas');
-        }
-    }, 'image/png', 0.95);
 }
-
-// Wait for all images to load
-async function waitForImages() {
-    const images = mainContent.querySelectorAll('img');
-    const imagePromises = Array.from(images).map(img => {
-        return new Promise((resolve) => {
-            if (img.complete) {
-                resolve();
-            } else {
-                img.onload = resolve;
-                img.onerror = resolve;
-            }
-        });
-    });
-    
-    await Promise.all(imagePromises);
-    console.log('All images loaded');
-}
-
-// Draw image with proper aspect ratio (like CSS object-fit: cover)
-function drawImageWithAspectRatio(ctx, img, x, y, width, height) {
-    console.log(`Drawing image: ${img.width}x${img.height} into ${width}x${height} at (${x}, ${y})`);
-    
-    // Calculate the aspect ratios
-    const imageAspectRatio = img.width / img.height;
-    const targetAspectRatio = width / height;
-    
-    console.log(`Image aspect ratio: ${imageAspectRatio}, Target aspect ratio: ${targetAspectRatio}`);
-    
-    let sourceX = 0;
-    let sourceY = 0;
-    let sourceWidth = img.width;
-    let sourceHeight = img.height;
-    
-    if (imageAspectRatio > targetAspectRatio) {
-        // Image is wider than target - crop sides (image is too wide)
-        sourceWidth = img.height * targetAspectRatio;
-        sourceX = (img.width - sourceWidth) / 2;
-        console.log(`Cropping sides: sourceX=${sourceX}, sourceWidth=${sourceWidth}`);
-    } else {
-        // Image is taller than target - crop top/bottom (image is too tall)
-        sourceHeight = img.width / targetAspectRatio;
-        sourceY = (img.height - sourceHeight) / 2;
-        console.log(`Cropping top/bottom: sourceY=${sourceY}, sourceHeight=${sourceHeight}`);
-    }
-    
-    // Draw the cropped image
-    ctx.drawImage(
-        img,
-        sourceX, sourceY, sourceWidth, sourceHeight,  // Source rectangle
-        x, y, width, height  // Destination rectangle
-    );
-    
-    console.log(`Image drawn successfully`);
-}
-
-
-
-
