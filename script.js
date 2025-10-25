@@ -168,7 +168,7 @@ function updateProfitabilityIndicator() {
 }
 
 
-// Manual Canvas Drawing for Perfect Design Capture
+// Simple and Reliable PNG Download
 async function downloadPNG() {
     try {
         generateBtn.textContent = 'Generiere PNG...';
@@ -179,63 +179,200 @@ async function downloadPNG() {
         controlPanel.style.display = 'none';
         
         // Wait for layout to settle
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise(resolve => setTimeout(resolve, 300));
         
         // Ensure all images are loaded
         await waitForImages();
         
-        // Get dimensions (square format)
-        const size = 800; // Fixed square size for consistent output
+        console.log('Starting PNG generation...');
+        console.log('Uploaded images count:', uploadedImages.length);
         
-        // Create canvas
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = size * 2; // High resolution
-        canvas.height = size * 2;
-        ctx.scale(2, 2);
-        
-        console.log('Creating manual canvas with size:', size, 'x', size);
-        
-        // Fill white background
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, size, size);
-        
-        // Draw images in mosaic layout
-        await drawImageMosaic(ctx, size);
-        
-        // Draw logo overlay
-        await drawLogoOverlay(ctx);
-        
-        // Draw footer with text and indicator
-        drawFooter(ctx, size);
-        
-        // Convert to PNG and download
-        canvas.toBlob(function(blob) {
-            if (blob) {
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.download = `inside-property-graphic-${Date.now()}.png`;
-                link.href = url;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
-                console.log('PNG downloaded successfully');
-            } else {
-                throw new Error('Failed to create blob');
-            }
-        }, 'image/png', 0.95);
+        // Try html2canvas with simple settings first
+        try {
+            const canvas = await html2canvas(mainContent, {
+                backgroundColor: '#ffffff',
+                scale: 2,
+                useCORS: true,
+                allowTaint: true,
+                logging: true,
+                imageTimeout: 10000
+            });
+            
+            console.log('Canvas created successfully:', canvas.width, 'x', canvas.height);
+            
+            // Convert to PNG and download
+            canvas.toBlob(function(blob) {
+                if (blob) {
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.download = `inside-property-graphic-${Date.now()}.png`;
+                    link.href = url;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                    console.log('PNG downloaded successfully');
+                } else {
+                    throw new Error('Failed to create blob');
+                }
+            }, 'image/png', 0.95);
+            
+        } catch (html2canvasError) {
+            console.log('html2canvas failed, trying manual method:', html2canvasError);
+            
+            // Fallback to manual drawing
+            await manualCanvasDrawing();
+        }
         
         // Show control panel again
         controlPanel.style.display = 'block';
         
     } catch (error) {
         console.error('Error creating PNG:', error);
-        alert('Fehler beim Erstellen der PNG-Datei. Bitte versuchen Sie es erneut.');
+        alert('Fehler beim Erstellen der PNG-Datei: ' + error.message);
     } finally {
         generateBtn.textContent = 'Grafik als PNG herunterladen';
         generateBtn.disabled = false;
     }
+}
+
+// Manual canvas drawing as fallback
+async function manualCanvasDrawing() {
+    console.log('Using manual canvas drawing...');
+    
+    const size = 800;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = size * 2;
+    canvas.height = size * 2;
+    ctx.scale(2, 2);
+    
+    // Fill white background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, size, size);
+    
+    // Draw footer background
+    const footerY = size - 150;
+    ctx.fillStyle = '#0D47A1';
+    ctx.fillRect(0, footerY, size, 150);
+    
+    // Draw green stripes
+    ctx.fillStyle = '#2C6B3F';
+    ctx.fillRect(size - 80, footerY, 20, 150);
+    ctx.fillRect(size - 55, footerY + 15, 15, 120);
+    ctx.fillRect(size - 35, footerY + 30, 10, 90);
+    
+    // Draw text content
+    ctx.fillStyle = '#FFC107';
+    ctx.font = 'bold 24px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText(projectNameInput.value || 'NUE EPIC ASOK - RAMA 9', 30, footerY + 40);
+    
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '16px Arial';
+    ctx.fillText(startPriceInput.value || '135,000 BAHT / SQM', 30, footerY + 70);
+    
+    ctx.font = '14px Arial';
+    ctx.fillText(examplePriceInput.value || '26 SQM UNIT FROM 3.5 M BAHT', 30, footerY + 95);
+    
+    // Draw profitability indicator
+    const indicatorY = footerY + 110;
+    const indicatorWidth = size - 200;
+    
+    // Gradient background
+    const gradient = ctx.createLinearGradient(30, indicatorY, 30 + indicatorWidth, indicatorY);
+    gradient.addColorStop(0, '#e53e3e');
+    gradient.addColorStop(0.5, '#f6ad55');
+    gradient.addColorStop(1, '#38a169');
+    
+    ctx.fillStyle = gradient;
+    ctx.fillRect(30, indicatorY, indicatorWidth, 20);
+    
+    // Indicator dot
+    const sliderValue = parseInt(profitabilitySlider.value);
+    const dotX = 30 + (indicatorWidth * sliderValue / 100);
+    ctx.fillStyle = '#FFC107';
+    ctx.beginPath();
+    ctx.arc(dotX, indicatorY + 10, 8, 0, 2 * Math.PI);
+    ctx.fill();
+    
+    // Labels
+    ctx.fillStyle = '#cbd5e0';
+    ctx.font = '10px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText('Less Profitable', 30, indicatorY + 35);
+    ctx.textAlign = 'center';
+    ctx.fillText('Normal', 30 + indicatorWidth / 2, indicatorY + 35);
+    ctx.textAlign = 'right';
+    ctx.fillText('Very Profitable', 30 + indicatorWidth, indicatorY + 35);
+    
+    // Draw images if available
+    if (uploadedImages.length > 0) {
+        console.log('Drawing images...');
+        const imageAreaHeight = size - 150;
+        const mainImageWidth = imageAreaHeight * 0.6;
+        
+        // Draw main image
+        try {
+            const mainImg = await loadImage(uploadedImages[0].src);
+            ctx.drawImage(mainImg, 0, 0, mainImageWidth, imageAreaHeight);
+            console.log('Main image drawn');
+        } catch (error) {
+            console.log('Could not draw main image:', error);
+        }
+        
+        // Draw secondary images
+        const secondaryImages = uploadedImages.slice(1, 5);
+        const secondaryImageSize = imageAreaHeight * 0.4;
+        
+        for (let i = 0; i < 4; i++) {
+            if (secondaryImages[i]) {
+                try {
+                    const x = mainImageWidth + (i % 2) * (secondaryImageSize / 2);
+                    const y = Math.floor(i / 2) * (secondaryImageSize / 2);
+                    const img = await loadImage(secondaryImages[i].src);
+                    ctx.drawImage(img, x, y, secondaryImageSize / 2, secondaryImageSize / 2);
+                    console.log(`Secondary image ${i + 1} drawn`);
+                } catch (error) {
+                    console.log(`Could not draw secondary image ${i + 1}:`, error);
+                }
+            }
+        }
+    }
+    
+    // Draw logo
+    try {
+        const logoImg = await loadImage('logo.png');
+        const logoSize = 40;
+        const padding = 8;
+        
+        // White background
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(20, 20, logoSize + padding * 2, logoSize + padding * 2);
+        
+        // Logo
+        ctx.drawImage(logoImg, 20 + padding, 20 + padding, logoSize, logoSize);
+        console.log('Logo drawn');
+    } catch (error) {
+        console.log('Could not draw logo:', error);
+    }
+    
+    // Convert to PNG and download
+    canvas.toBlob(function(blob) {
+        if (blob) {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = `inside-property-graphic-${Date.now()}.png`;
+            link.href = url;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            console.log('Manual PNG downloaded successfully');
+        } else {
+            throw new Error('Failed to create blob from manual canvas');
+        }
+    }, 'image/png', 0.95);
 }
 
 // Wait for all images to load
@@ -256,147 +393,6 @@ async function waitForImages() {
     console.log('All images loaded');
 }
 
-// Draw image mosaic layout
-async function drawImageMosaic(ctx, size) {
-    const imageAreaHeight = size - 150; // Leave space for footer
-    const mainImageWidth = imageAreaHeight * 0.6; // 60% of height
-    const secondaryImageSize = imageAreaHeight * 0.4; // 40% of height
-    
-    // Draw main image (left side)
-    if (uploadedImages.length > 0) {
-        const mainImg = await loadImage(uploadedImages[0].src);
-        ctx.drawImage(mainImg, 0, 0, mainImageWidth, imageAreaHeight);
-    } else {
-        // Draw placeholder
-        ctx.fillStyle = '#e2e8f0';
-        ctx.fillRect(0, 0, mainImageWidth, imageAreaHeight);
-        ctx.fillStyle = '#718096';
-        ctx.font = '16px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('Main Image', mainImageWidth / 2, imageAreaHeight / 2);
-    }
-    
-    // Draw secondary images (right side, 2x2 grid)
-    const secondaryImages = uploadedImages.slice(1, 5);
-    for (let i = 0; i < 4; i++) {
-        const x = mainImageWidth + (i % 2) * (secondaryImageSize / 2);
-        const y = Math.floor(i / 2) * (secondaryImageSize / 2);
-        
-        if (secondaryImages[i]) {
-            const img = await loadImage(secondaryImages[i].src);
-            ctx.drawImage(img, x, y, secondaryImageSize / 2, secondaryImageSize / 2);
-        } else {
-            // Draw placeholder
-            ctx.fillStyle = '#e2e8f0';
-            ctx.fillRect(x, y, secondaryImageSize / 2, secondaryImageSize / 2);
-            ctx.fillStyle = '#718096';
-            ctx.font = '12px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText(`Image ${i + 2}`, x + (secondaryImageSize / 4), y + (secondaryImageSize / 4));
-        }
-    }
-}
-
-// Load image from data URL
-function loadImage(src) {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => resolve(img);
-        img.onerror = reject;
-        img.src = src;
-    });
-}
-
-// Draw logo overlay
-async function drawLogoOverlay(ctx) {
-    try {
-        const logoImg = await loadImage('logo.png');
-        const logoSize = 40;
-        const padding = 8;
-        
-        // Draw white background
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(20, 20, logoSize + padding * 2, logoSize + padding * 2);
-        
-        // Draw shadow
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
-        ctx.shadowBlur = 4;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 4;
-        
-        // Draw logo
-        ctx.drawImage(logoImg, 20 + padding, 20 + padding, logoSize, logoSize);
-        
-        // Reset shadow
-        ctx.shadowColor = 'transparent';
-        ctx.shadowBlur = 0;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 0;
-    } catch (error) {
-        console.log('Logo not found, skipping...');
-    }
-}
-
-// Draw footer with text and indicator
-function drawFooter(ctx, size) {
-    const footerY = size - 150;
-    const footerHeight = 150;
-    
-    // Draw footer background
-    ctx.fillStyle = '#0D47A1'; // Primary blue
-    ctx.fillRect(0, footerY, size, footerHeight);
-    
-    // Draw green accent stripes
-    ctx.fillStyle = '#2C6B3F'; // Secondary green
-    ctx.fillRect(size - 80, footerY, 20, footerHeight);
-    ctx.fillRect(size - 55, footerY + 15, 15, footerHeight - 30);
-    ctx.fillRect(size - 35, footerY + 30, 10, footerHeight - 60);
-    
-    // Draw project name
-    ctx.fillStyle = '#FFC107'; // Accent gold
-    ctx.font = 'bold 24px Arial';
-    ctx.textAlign = 'left';
-    ctx.fillText(projectNameInput.value || 'NUE EPIC ASOK - RAMA 9', 30, footerY + 40);
-    
-    // Draw prices
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '16px Arial';
-    ctx.fillText(startPriceInput.value || '135,000 BAHT / SQM', 30, footerY + 70);
-    
-    ctx.font = '14px Arial';
-    ctx.fillText(examplePriceInput.value || '26 SQM UNIT FROM 3.5 M BAHT', 30, footerY + 95);
-    
-    // Draw profitability indicator
-    const indicatorY = footerY + 110;
-    const indicatorWidth = size - 200;
-    
-    // Draw indicator background gradient
-    const gradient = ctx.createLinearGradient(30, indicatorY, 30 + indicatorWidth, indicatorY);
-    gradient.addColorStop(0, '#e53e3e');
-    gradient.addColorStop(0.5, '#f6ad55');
-    gradient.addColorStop(1, '#38a169');
-    
-    ctx.fillStyle = gradient;
-    ctx.fillRect(30, indicatorY, indicatorWidth, 20);
-    
-    // Draw indicator dot
-    const sliderValue = parseInt(profitabilitySlider.value);
-    const dotX = 30 + (indicatorWidth * sliderValue / 100);
-    ctx.fillStyle = '#FFC107';
-    ctx.beginPath();
-    ctx.arc(dotX, indicatorY + 10, 8, 0, 2 * Math.PI);
-    ctx.fill();
-    
-    // Draw indicator labels
-    ctx.fillStyle = '#cbd5e0';
-    ctx.font = '10px Arial';
-    ctx.textAlign = 'left';
-    ctx.fillText('Less Profitable', 30, indicatorY + 35);
-    ctx.textAlign = 'center';
-    ctx.fillText('Normal', 30 + indicatorWidth / 2, indicatorY + 35);
-    ctx.textAlign = 'right';
-    ctx.fillText('Very Profitable', 30 + indicatorWidth, indicatorY + 35);
-}
 
 
 
