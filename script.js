@@ -1,22 +1,22 @@
-// Dynamic Mosaic Generator - Complete Rewrite
-// This creates a mosaic that adapts to the aspect ratios of uploaded images
+// Simple and Working Image Mosaic Generator
+// Fixed layout: 1 main image + 4 secondary images
 
 // Global variables
 let uploadedImages = [];
-let mosaicGenerator;
-
-// DOM elements
-let projectNameInput, startPriceInput, examplePriceInput, profitabilitySlider, generateBtn, mainContent;
+let mainImagePlaceholder, secondaryImagePlaceholders, projectNameInput, startPriceInput, examplePriceInput, profitabilitySlider, generateBtn, mainContent;
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Initializing Dynamic Mosaic Generator...');
-    
-    // Initialize mosaic generator
-    mosaicGenerator = new DynamicMosaicGenerator();
-    mosaicGenerator.init();
+    console.log('Initializing Simple Mosaic Generator...');
     
     // Get DOM elements
+    mainImagePlaceholder = document.getElementById('mainImagePlaceholder');
+    secondaryImagePlaceholders = [
+        document.getElementById('secondaryImage1'),
+        document.getElementById('secondaryImage2'),
+        document.getElementById('secondaryImage3'),
+        document.getElementById('secondaryImage4')
+    ];
     projectNameInput = document.getElementById('projectName');
     startPriceInput = document.getElementById('startPrice');
     examplePriceInput = document.getElementById('examplePrice');
@@ -59,64 +59,102 @@ function initializeEventListeners() {
     }
 }
 
-// Handle image upload with dynamic mosaic
-async function handleImageUpload(event) {
+function handleImageUpload(event) {
     const files = Array.from(event.target.files);
     console.log('Uploading', files.length, 'images...');
     
-    for (const file of files) {
+    files.forEach(file => {
         if (file.type.startsWith('image/')) {
-            const imageData = await processImageFile(file);
-            if (imageData) {
-                await mosaicGenerator.addImage(imageData);
-                uploadedImages.push(imageData);
-            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // Create a new image to ensure it's not tainted
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = function() {
+                    // Create canvas to convert to clean data URL
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    
+                    const cleanDataURL = canvas.toDataURL('image/png');
+                    
+                    const imageData = {
+                        id: Date.now() + Math.random(),
+                        src: cleanDataURL,
+                        file: file,
+                        width: img.width,
+                        height: img.height,
+                        aspectRatio: img.width / img.height
+                    };
+                    uploadedImages.push(imageData);
+                    displayUploadedImages();
+                    updateImageMosaic();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
         }
-    }
+    });
     
     // Clear the input
     event.target.value = '';
-    console.log('Total images:', uploadedImages.length);
 }
 
-// Process image file to data URL
-function processImageFile(file) {
-    return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const img = new Image();
-            img.crossOrigin = 'anonymous';
-            img.onload = function() {
-                // Create canvas to convert to clean data URL
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                canvas.width = img.width;
-                canvas.height = img.height;
-                ctx.drawImage(img, 0, 0);
-                
-                const cleanDataURL = canvas.toDataURL('image/png');
-                
-                resolve({
-                    id: Date.now() + Math.random(),
-                    src: cleanDataURL,
-                    file: file,
-                    name: file.name
-                });
-            };
-            img.onerror = () => resolve(null);
-            img.src = e.target.result;
-        };
-        reader.onerror = () => resolve(null);
-        reader.readAsDataURL(file);
+function displayUploadedImages() {
+    const uploadedImagesList = document.getElementById('uploadedImages');
+    if (!uploadedImagesList) return;
+    
+    uploadedImagesList.innerHTML = '';
+    
+    uploadedImages.forEach((imageData, index) => {
+        const imageItem = document.createElement('div');
+        imageItem.className = 'uploaded-image-item';
+        imageItem.innerHTML = `
+            <img src="${imageData.src}" alt="Uploaded image ${index + 1}">
+            <span>Bild ${index + 1}</span>
+            <button onclick="removeImage(${index})" class="remove-btn">×</button>
+        `;
+        uploadedImagesList.appendChild(imageItem);
     });
 }
 
-// Update preview (placeholder for future enhancements)
+function removeImage(index) {
+    uploadedImages.splice(index, 1);
+    displayUploadedImages();
+    updateImageMosaic();
+}
+
+function updateImageMosaic() {
+    console.log('Updating image mosaic with', uploadedImages.length, 'images');
+    
+    // Clear existing images
+    mainImagePlaceholder.innerHTML = '<span>Hauptbild hier</span>';
+    secondaryImagePlaceholders.forEach(placeholder => {
+        placeholder.innerHTML = '<span>Bild hier</span>';
+    });
+    
+    if (uploadedImages.length === 0) return;
+    
+    // Set main image (first uploaded image)
+    if (uploadedImages.length > 0) {
+        mainImagePlaceholder.innerHTML = `<img src="${uploadedImages[0].src}" alt="Main image">`;
+        console.log('Main image set');
+    }
+    
+    // Set secondary images
+    for (let i = 1; i < uploadedImages.length && i <= 5; i++) {
+        const placeholder = secondaryImagePlaceholders[i - 1];
+        placeholder.innerHTML = `<img src="${uploadedImages[i].src}" alt="Secondary image ${i}">`;
+        console.log(`Secondary image ${i} set`);
+    }
+}
+
 function updatePreview() {
     console.log('Preview updated');
 }
 
-// Update profitability indicator
 function updateProfitabilityIndicator() {
     const value = profitabilitySlider.value;
     const dot = document.getElementById('indicatorDot');
@@ -135,7 +173,7 @@ function updateProfitabilityIndicator() {
     }
 }
 
-// Download PNG with dynamic mosaic
+// Download PNG - Simple and Reliable
 async function downloadPNG() {
     try {
         generateBtn.textContent = 'Generiere PNG...';
@@ -148,7 +186,8 @@ async function downloadPNG() {
         // Wait for layout to settle
         await new Promise(resolve => setTimeout(resolve, 300));
         
-        console.log('Starting PNG generation with dynamic mosaic...');
+        console.log('Starting PNG generation...');
+        console.log('Uploaded images count:', uploadedImages.length);
         
         // Try html2canvas first
         try {
@@ -197,9 +236,9 @@ async function downloadPNG() {
     }
 }
 
-// Manual canvas drawing with dynamic mosaic
+// Manual canvas drawing with CORRECT image scaling
 async function manualCanvasDrawing() {
-    console.log('Using manual canvas drawing with dynamic mosaic...');
+    console.log('Using manual canvas drawing with correct scaling...');
     
     const size = 800;
     const canvas = document.createElement('canvas');
@@ -212,9 +251,8 @@ async function manualCanvasDrawing() {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, size, size);
     
-    // Draw images using dynamic mosaic data
-    const mosaicData = mosaicGenerator.getMosaicData();
-    await drawDynamicMosaic(ctx, mosaicData, size);
+    // Draw images with CORRECT scaling (no distortion)
+    await drawImagesCorrectly(ctx, size);
     
     // Draw logo
     await drawLogo(ctx);
@@ -233,126 +271,80 @@ async function manualCanvasDrawing() {
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
-            console.log('Dynamic mosaic PNG downloaded successfully');
+            console.log('Correctly scaled PNG downloaded successfully');
         } else {
-            throw new Error('Failed to create blob from dynamic mosaic');
+            throw new Error('Failed to create blob');
         }
     }, 'image/png', 0.95);
 }
 
-// Draw dynamic mosaic on canvas
-async function drawDynamicMosaic(ctx, mosaicData, size) {
-    const { images, layout } = mosaicData;
+// Draw images with CORRECT scaling - NO DISTORTION
+async function drawImagesCorrectly(ctx, size) {
+    if (uploadedImages.length === 0) return;
+    
     const imageAreaHeight = size - 150;
+    const mainImageWidth = imageAreaHeight * 0.6;
+    const secondaryImageSize = imageAreaHeight * 0.4;
     
-    console.log('Drawing dynamic mosaic with layout:', layout);
+    console.log('Drawing images with correct scaling...');
     
-    if (images.length === 0) return;
-    
-    // Draw images based on layout
-    switch (layout) {
-        case 'single':
-            await drawSingleImage(ctx, images[0], 0, 0, size * 0.8, imageAreaHeight * 0.8);
-            break;
-        case 'two':
-            await drawTwoImages(ctx, images, size, imageAreaHeight);
-            break;
-        case 'three':
-            await drawThreeImages(ctx, images, size, imageAreaHeight);
-            break;
-        case 'four':
-            await drawFourImages(ctx, images, size, imageAreaHeight);
-            break;
-        case 'five':
-            await drawFiveImages(ctx, images, size, imageAreaHeight);
-            break;
-    }
-}
-
-// Draw single image
-async function drawSingleImage(ctx, imageData, x, y, width, height) {
-    try {
-        const img = await loadImage(imageData.src);
-        const aspectRatio = img.width / img.height;
-        const containerAspectRatio = width / height;
-        
-        let sourceX = 0, sourceY = 0, sourceWidth = img.width, sourceHeight = img.height;
-        
-        if (aspectRatio > containerAspectRatio) {
-            sourceWidth = img.height * containerAspectRatio;
-            sourceX = (img.width - sourceWidth) / 2;
-        } else {
-            sourceHeight = img.width / containerAspectRatio;
-            sourceY = (img.height - sourceHeight) / 2;
+    // Draw main image with CORRECT scaling
+    if (uploadedImages.length > 0) {
+        try {
+            const mainImg = await loadImage(uploadedImages[0].src);
+            console.log(`Main image: ${mainImg.width}x${mainImg.height}`);
+            
+            // Calculate scaling to fill container while maintaining aspect ratio
+            const scaleX = mainImageWidth / mainImg.width;
+            const scaleY = imageAreaHeight / mainImg.height;
+            const scale = Math.max(scaleX, scaleY); // Use larger scale to fill container
+            
+            const scaledWidth = mainImg.width * scale;
+            const scaledHeight = mainImg.height * scale;
+            
+            // Center the image
+            const offsetX = (mainImageWidth - scaledWidth) / 2;
+            const offsetY = (imageAreaHeight - scaledHeight) / 2;
+            
+            console.log(`Main image scaling: ${scale}, drawing at (${offsetX}, ${offsetY})`);
+            ctx.drawImage(mainImg, offsetX, offsetY, scaledWidth, scaledHeight);
+            console.log('Main image drawn correctly');
+        } catch (error) {
+            console.log('Could not draw main image:', error);
         }
-        
-        ctx.drawImage(img, sourceX, sourceY, sourceWidth, sourceHeight, x, y, width, height);
-        console.log('Single image drawn');
-    } catch (error) {
-        console.log('Could not draw single image:', error);
     }
-}
-
-// Draw two images
-async function drawTwoImages(ctx, images, size, imageAreaHeight) {
-    const img1 = images[0];
-    const img2 = images[1];
     
-    // Determine layout based on aspect ratios
-    const avgAspectRatio = (img1.aspectRatio + img2.aspectRatio) / 2;
-    
-    if (avgAspectRatio > 1.2) {
-        // Stack vertically
-        await drawSingleImage(ctx, img1, 0, 0, size, imageAreaHeight / 2);
-        await drawSingleImage(ctx, img2, 0, imageAreaHeight / 2, size, imageAreaHeight / 2);
-    } else {
-        // Side by side
-        await drawSingleImage(ctx, img1, 0, 0, size / 2, imageAreaHeight);
-        await drawSingleImage(ctx, img2, size / 2, 0, size / 2, imageAreaHeight);
-    }
-}
-
-// Draw three images
-async function drawThreeImages(ctx, images, size, imageAreaHeight) {
-    const mainImg = images[0];
-    const secondaryImages = images.slice(1);
-    
-    // Main image takes more space
-    await drawSingleImage(ctx, mainImg, 0, 0, size * 0.6, imageAreaHeight);
-    
-    // Secondary images
-    await drawSingleImage(ctx, secondaryImages[0], size * 0.6, 0, size * 0.4, imageAreaHeight / 2);
-    await drawSingleImage(ctx, secondaryImages[1], size * 0.6, imageAreaHeight / 2, size * 0.4, imageAreaHeight / 2);
-}
-
-// Draw four images
-async function drawFourImages(ctx, images, size, imageAreaHeight) {
-    const halfWidth = size / 2;
-    const halfHeight = imageAreaHeight / 2;
-    
+    // Draw secondary images with CORRECT scaling
+    const secondaryImages = uploadedImages.slice(1, 5);
     for (let i = 0; i < 4; i++) {
-        const x = (i % 2) * halfWidth;
-        const y = Math.floor(i / 2) * halfHeight;
-        await drawSingleImage(ctx, images[i], x, y, halfWidth, halfHeight);
-    }
-}
-
-// Draw five images
-async function drawFiveImages(ctx, images, size, imageAreaHeight) {
-    const mainImg = images[0];
-    const secondaryImages = images.slice(1);
-    
-    // Main image
-    await drawSingleImage(ctx, mainImg, 0, 0, size * 0.6, imageAreaHeight);
-    
-    // Secondary images in 2x2 grid
-    const secondaryWidth = size * 0.4;
-    const secondaryHeight = imageAreaHeight / 2;
-    
-    for (let i = 0; i < 4; i++) {
-        const x = size * 0.6 + (i % 2) * (secondaryWidth / 2);
-        const y = Math.floor(i / 2) * secondaryHeight;
-        await drawSingleImage(ctx, secondaryImages[i], x, y, secondaryWidth / 2, secondaryHeight);
+        if (secondaryImages[i]) {
+            try {
+                const x = mainImageWidth + (i % 2) * (secondaryImageSize / 2);
+                const y = Math.floor(i / 2) * (secondaryImageSize / 2);
+                const img = await loadImage(secondaryImages[i].src);
+                
+                console.log(`Secondary image ${i + 1}: ${img.width}x${img.height}`);
+                
+                // Calculate scaling for secondary images
+                const targetSize = secondaryImageSize / 2;
+                const scaleX = targetSize / img.width;
+                const scaleY = targetSize / img.height;
+                const scale = Math.max(scaleX, scaleY);
+                
+                const scaledWidth = img.width * scale;
+                const scaledHeight = img.height * scale;
+                
+                // Center the image
+                const offsetX = x + (targetSize - scaledWidth) / 2;
+                const offsetY = y + (targetSize - scaledHeight) / 2;
+                
+                console.log(`Secondary image ${i + 1} scaling: ${scale}`);
+                ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+                console.log(`Secondary image ${i + 1} drawn correctly`);
+            } catch (error) {
+                console.log(`Could not draw secondary image ${i + 1}:`, error);
+            }
+        }
     }
 }
 
