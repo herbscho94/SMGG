@@ -306,37 +306,41 @@ async function manualCanvasDrawing() {
     ctx.textAlign = 'right';
     ctx.fillText('Very Profitable', 30 + indicatorWidth, indicatorY + 35);
     
-    // Draw images if available - NEW SIMPLE APPROACH
+    // Draw images if available - EXACTLY LIKE CSS object-fit: cover
     if (uploadedImages.length > 0) {
-        console.log('Drawing images with simple approach...');
+        console.log('Drawing images with CSS object-fit: cover behavior...');
         const imageAreaHeight = size - 150;
         const mainImageWidth = imageAreaHeight * 0.6;
         
-        // Draw main image - simple approach
+        // Draw main image - EXACT CSS object-fit: cover behavior
         try {
             const mainImg = await loadImage(uploadedImages[0].src);
             console.log(`Main image loaded: ${mainImg.width}x${mainImg.height}`);
             
-            // Calculate scaling to fill the area while maintaining aspect ratio
-            const scaleX = mainImageWidth / mainImg.width;
-            const scaleY = imageAreaHeight / mainImg.height;
-            const scale = Math.max(scaleX, scaleY); // Use larger scale to fill area
+            // EXACT object-fit: cover implementation
+            const imageAspectRatio = mainImg.width / mainImg.height;
+            const containerAspectRatio = mainImageWidth / imageAreaHeight;
             
-            const scaledWidth = mainImg.width * scale;
-            const scaledHeight = mainImg.height * scale;
+            let sourceX = 0, sourceY = 0, sourceWidth = mainImg.width, sourceHeight = mainImg.height;
             
-            // Center the image
-            const offsetX = (mainImageWidth - scaledWidth) / 2;
-            const offsetY = (imageAreaHeight - scaledHeight) / 2;
+            if (imageAspectRatio > containerAspectRatio) {
+                // Image is wider - crop sides
+                sourceWidth = mainImg.height * containerAspectRatio;
+                sourceX = (mainImg.width - sourceWidth) / 2;
+            } else {
+                // Image is taller - crop top/bottom
+                sourceHeight = mainImg.width / containerAspectRatio;
+                sourceY = (mainImg.height - sourceHeight) / 2;
+            }
             
-            console.log(`Scaling main image by ${scale}, drawing at (${offsetX}, ${offsetY})`);
-            ctx.drawImage(mainImg, offsetX, offsetY, scaledWidth, scaledHeight);
+            console.log(`Main image cropping: source(${sourceX}, ${sourceY}, ${sourceWidth}, ${sourceHeight})`);
+            ctx.drawImage(mainImg, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, mainImageWidth, imageAreaHeight);
             console.log('Main image drawn successfully');
         } catch (error) {
             console.log('Could not draw main image:', error);
         }
         
-        // Draw secondary images - simple approach
+        // Draw secondary images - EXACT CSS object-fit: cover behavior
         const secondaryImages = uploadedImages.slice(1, 5);
         const secondaryImageSize = imageAreaHeight * 0.4;
         
@@ -349,21 +353,25 @@ async function manualCanvasDrawing() {
                     
                     console.log(`Secondary image ${i + 1} loaded: ${img.width}x${img.height}`);
                     
-                    // Calculate scaling for secondary images
+                    // EXACT object-fit: cover implementation for secondary images
                     const targetSize = secondaryImageSize / 2;
-                    const scaleX = targetSize / img.width;
-                    const scaleY = targetSize / img.height;
-                    const scale = Math.max(scaleX, scaleY);
+                    const imageAspectRatio = img.width / img.height;
+                    const containerAspectRatio = targetSize / targetSize; // Square container
                     
-                    const scaledWidth = img.width * scale;
-                    const scaledHeight = img.height * scale;
+                    let sourceX = 0, sourceY = 0, sourceWidth = img.width, sourceHeight = img.height;
                     
-                    // Center the image
-                    const offsetX = x + (targetSize - scaledWidth) / 2;
-                    const offsetY = y + (targetSize - scaledHeight) / 2;
+                    if (imageAspectRatio > containerAspectRatio) {
+                        // Image is wider - crop sides
+                        sourceWidth = img.height * containerAspectRatio;
+                        sourceX = (img.width - sourceWidth) / 2;
+                    } else {
+                        // Image is taller - crop top/bottom
+                        sourceHeight = img.width / containerAspectRatio;
+                        sourceY = (img.height - sourceHeight) / 2;
+                    }
                     
-                    console.log(`Scaling secondary image ${i + 1} by ${scale}`);
-                    ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+                    console.log(`Secondary image ${i + 1} cropping: source(${sourceX}, ${sourceY}, ${sourceWidth}, ${sourceHeight})`);
+                    ctx.drawImage(img, sourceX, sourceY, sourceWidth, sourceHeight, x, y, targetSize, targetSize);
                     console.log(`Secondary image ${i + 1} drawn successfully`);
                 } catch (error) {
                     console.log(`Could not draw secondary image ${i + 1}:`, error);
